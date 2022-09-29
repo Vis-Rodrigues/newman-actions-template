@@ -1,0 +1,51 @@
+name: Add PR comment with Newman Results
+on:
+  workflow_call:
+    inputs:
+      pr_title:
+        description: 'PR's title'
+        type: string
+        default: 'Resultado da última execução'
+      artifact_name:
+        description: 'Downloadable artifact name'
+        required: true
+        type: string
+        default: report
+      report_json_path:
+        description: 'JSON file path. Include extension.'
+        required: true
+        type: string
+      
+jobs:
+  
+  comment-pr-newman:
+    
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      
+      - name: download a artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.artifact_name }}
+
+      - name: json to variables
+        uses: rgarcia-phi/json-to-variables@v1.1.0
+        with:
+          filename: ${{ inputs.report_json_path }}
+          prefix: result
+          # masked: true
+
+      - name: add pr comment
+        uses: mshick/add-pr-comment@v1
+        with:
+          message: |
+            ### 🚀 ${{ inputs.pr_title }}
+            ||executed|failed|
+            |--:|--:|--:|
+            |requests|${{ env.result_Run_Stats_Requests_total }}|${{ env.result_Run_Stats_Requests_failed }}|
+            |assertions|${{ env.result_Run_Stats_Assertions_total }}|${{ env.result_Run_Stats_Assertions_failed }}|
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
